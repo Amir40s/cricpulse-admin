@@ -12,7 +12,7 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenMobileMenu, title, subtitle, breadcrumbs = ['Dashboard'] }: HeaderProps) {
-  const { apiSettings, addToast, theme, toggleTheme } = useApp();
+  const { addToast, theme, toggleTheme, openMobileSidebar } = useApp();
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 
   const handleGlobalRefresh = async () => {
@@ -22,12 +22,17 @@ export function Header({ onOpenMobileMenu, title, subtitle, breadcrumbs = ['Dash
     setIsRefreshing(false);
   };
 
+  const handleOpenMobileMenu = () => {
+    if (onOpenMobileMenu) onOpenMobileMenu();
+    openMobileSidebar();
+  };
+
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-slate-200 dark:border-slate-800/80 bg-white/85 dark:bg-[#070b14]/85 backdrop-blur-md px-4 sm:px-6 lg:px-8 flex items-center justify-between transition-colors duration-150">
       {/* Left: Mobile trigger & Breadcrumbs */}
       <div className="flex items-center gap-3">
         <button
-          onClick={onOpenMobileMenu}
+          onClick={handleOpenMobileMenu}
           className="p-1.5 -ml-1 rounded-md text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 lg:hidden"
           aria-label="Open mobile navigation"
         >

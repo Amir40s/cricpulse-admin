@@ -11,8 +11,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useApp();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isAuthenticated, isMobileSidebarOpen, closeMobileSidebar } = useApp();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -39,8 +38,8 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#070b14] text-slate-900 dark:text-slate-100 flex transition-colors duration-150">
-      {/* Docked Sidebar */}
-      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Docked Sidebar (Hidden on mobile/tablet until opened) */}
+      <Sidebar isOpen={isMobileSidebarOpen} onClose={closeMobileSidebar} />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:pl-64">

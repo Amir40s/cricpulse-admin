@@ -77,6 +77,12 @@ interface AppContextType {
   appSettings: AppGeneralSettings;
   updateAppSettings: (updated: Partial<AppGeneralSettings>) => void;
 
+  // Mobile Navigation
+  isMobileSidebarOpen: boolean;
+  openMobileSidebar: () => void;
+  closeMobileSidebar: () => void;
+  toggleMobileSidebar: () => void;
+
   // Theme
   theme: 'dark' | 'light';
   toggleTheme: () => void;
@@ -102,6 +108,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [adMobSettings, setAdMobSettings] = useState<AdMobSettings>(initialAdMobSettings);
   const [appSettings, setAppSettings] = useState<AppGeneralSettings>(initialAppSettings);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const openMobileSidebar = () => setIsMobileSidebarOpen(true);
+  const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
+  const toggleMobileSidebar = () => setIsMobileSidebarOpen((prev) => !prev);
 
   // Load from localStorage on client mount
   useEffect(() => {
@@ -522,6 +533,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         toasts,
         addToast,
         removeToast,
+        isMobileSidebarOpen,
+        openMobileSidebar,
+        closeMobileSidebar,
+        toggleMobileSidebar,
       }}
     >
       {children}
