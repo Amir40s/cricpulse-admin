@@ -3,9 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Header } from '@/components/layout/header';
-import {
-  ShieldCheck,
-} from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function MonetizationPage() {
   const { adMobSettings, updateAdMobSettings, addToast } = useApp();
@@ -43,92 +41,99 @@ export default function MonetizationPage() {
   };
 
   return (
-    <div className="min-h-full transition-colors duration-150">
+    <div className="min-h-full bg-slate-50/60 dark:bg-[#070b12] text-slate-900 dark:text-slate-100 antialiased transition-colors">
       <Header
         onOpenMobileMenu={() => {}}
         title="AdMob & Monetization"
         breadcrumbs={['Monetization']}
       />
 
-      <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 sm:space-y-8">
-        {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-                Monetization & AdMob
-              </h2>
-              <span
-                className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                  globalEnabled
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
-                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                }`}
-              >
-                {globalEnabled ? 'Serving Ads' : 'Paused'}
-              </span>
-              {testMode && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 font-medium">
-                  Test Mode
-                </span>
-              )}
+      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        {/* Banner Card Style matching Overview and Polls */}
+        <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/70 bg-gradient-to-b from-white to-slate-50/80 dark:from-slate-900/90 dark:to-slate-950/90 p-5 sm:p-7 shadow-xs">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                AdMob & Monetization
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Configure Google AdMob app credentials, unit identifiers, and mobile placement frequencies.
+              </p>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Configure AdMob credentials, unit identifiers, and mobile placement frequencies.
-            </p>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleLoadOfficialTestUnits}
-            className="inline-flex items-center gap-2 h-9 px-3.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors shrink-0 shadow-2xs"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Load Test IDs</span>
-          </button>
-        </div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 shrink-0">
+              <div className="flex items-center gap-3 text-xs font-mono text-slate-500 dark:text-slate-400 pr-3 sm:border-r border-slate-200 dark:border-slate-800">
+                <span>
+                  Status:{' '}
+                  <strong
+                    className={`font-semibold ${
+                      globalEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    {globalEnabled ? 'Serving Ads' : 'Paused'}
+                  </strong>
+                </span>
+                <span>
+                  Mode:{' '}
+                  <strong className="text-slate-900 dark:text-slate-100 font-semibold">
+                    {testMode ? 'QA Test' : 'Live Production'}
+                  </strong>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLoadOfficialTestUnits}
+                className="inline-flex items-center gap-2 h-10 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold shadow-xs shadow-emerald-600/20 transition-all shrink-0"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Load Test IDs</span>
+              </button>
+            </div>
+          </div>
+        </section>
 
         <form onSubmit={handleSave} className="space-y-6">
           {/* Master Toggles */}
-          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
               Master Controls
-            </h3>
+            </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <label className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+              <label className="flex items-center justify-between p-4 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
                 <div>
                   <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">Monetization Engine</span>
-                  <span className="text-xs text-slate-500">Enable or disable all ads remotely</span>
+                  <span className="text-xs text-slate-500">Enable or disable all mobile ads remotely</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={globalEnabled}
                   onChange={(e) => setGlobalEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-emerald-600 focus:ring-emerald-500"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-4 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+              <label className="flex items-center justify-between p-4 rounded-xl bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
                 <div>
                   <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 block">Test Ad Mode</span>
-                  <span className="text-xs text-slate-500">Serves Google test ads for QA</span>
+                  <span className="text-xs text-slate-500">Serves Google test units for mobile QA</span>
                 </div>
                 <input
                   type="checkbox"
                   checked={testMode}
                   onChange={(e) => setTestMode(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-emerald-600 focus:ring-emerald-500"
                 />
               </label>
             </div>
           </div>
 
           {/* Ad Unit IDs Card */}
-          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
               AdMob Unit Identifiers
-            </h3>
+            </h2>
 
             <div className="space-y-4">
               <div>
@@ -141,7 +146,7 @@ export default function MonetizationPage() {
                   value={appId}
                   onChange={(e) => setAppId(e.target.value)}
                   placeholder="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"
-                  className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                  className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -156,7 +161,7 @@ export default function MonetizationPage() {
                     value={bannerId}
                     onChange={(e) => setBannerId(e.target.value)}
                     placeholder="ca-app-pub-..."
-                    className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -170,7 +175,7 @@ export default function MonetizationPage() {
                     value={interstitialId}
                     onChange={(e) => setInterstitialId(e.target.value)}
                     placeholder="ca-app-pub-..."
-                    className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -184,7 +189,7 @@ export default function MonetizationPage() {
                     value={nativeId}
                     onChange={(e) => setNativeId(e.target.value)}
                     placeholder="ca-app-pub-..."
-                    className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -197,7 +202,7 @@ export default function MonetizationPage() {
                     value={rewardedId}
                     onChange={(e) => setRewardedId(e.target.value)}
                     placeholder="ca-app-pub-..."
-                    className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -207,13 +212,13 @@ export default function MonetizationPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="h-9 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition-colors"
+              className="h-10 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold shadow-xs shadow-emerald-600/20 transition-all"
             >
               Save Changes
             </button>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   );
 }

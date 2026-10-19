@@ -1,10 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-sans: 'Exo 2', sans-serif;
+  --font-mono: 'Exo 2', sans-serif;
+}
 
-button{
-  cursor:pointer
+*,
+*::before,
+*::after,
+html,
+body,
+input,
+textarea,
+select,
+button,
+span,
+p,
+div,
+a,
+label,
+h1, h2, h3, h4, h5, h6,
+table, th, td,
+code, pre, kbd,
+.font-mono,
+.font-sans {
+  font-family: 'Exo 2', sans-serif !important;
+}
+
+button {
+  cursor: pointer;
 }
 
 @layer base {
@@ -23,6 +50,7 @@ button{
   body {
     background-color: var(--bg-main);
     color: var(--text-main);
+    font-family: 'Exo 2', sans-serif !important;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

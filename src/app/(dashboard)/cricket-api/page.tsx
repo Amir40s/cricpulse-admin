@@ -3,13 +3,9 @@
 import React, { useState } from 'react';
 import { useApp } from '@/lib/store';
 import { Header } from '@/components/layout/header';
-import {
-  Zap,
-  Eye,
-  EyeOff,
-} from 'lucide-react';
+import { Zap, Eye, EyeOff } from 'lucide-react';
 
-export default function CricketApiPage() {
+export default function CricketAPISettingsPage() {
   const { apiSettings, updateApiSettings, testApiConnection } = useApp();
 
   const [provider, setProvider] = useState(apiSettings.provider);
@@ -25,8 +21,8 @@ export default function CricketApiPage() {
     e.preventDefault();
     updateApiSettings({
       provider,
-      apiKey: apiKey.trim(),
-      baseUrl: baseUrl.trim(),
+      apiKey,
+      baseUrl,
       rateLimitPerDay: Number(rateLimitPerDay),
       cacheTtlMinutes: Number(cacheTtl),
     });
@@ -44,86 +40,104 @@ export default function CricketApiPage() {
   );
 
   return (
-    <div className="min-h-full transition-colors duration-150">
+    <div className="min-h-full bg-slate-50/60 dark:bg-[#070b12] text-slate-900 dark:text-slate-100 antialiased transition-colors">
       <Header
         onOpenMobileMenu={() => {}}
         title="Cricket API Gateway"
         breadcrumbs={['Cricket API']}
       />
 
-      <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto space-y-6 sm:space-y-8">
-        {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+      <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+        {/* Banner Card Style matching Overview and Polls */}
+        <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/70 bg-gradient-to-b from-white to-slate-50/80 dark:from-slate-900/90 dark:to-slate-950/90 p-5 sm:p-7 shadow-xs">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
                 Match Engine & API Gateway
-              </h2>
-              <span
-                className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                  apiSettings.lastPingStatus === 'healthy'
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
-                    : 'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20'
-                }`}
-              >
-                {apiSettings.lastPingStatus === 'healthy' ? 'Operational' : 'Check Key'}
-              </span>
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
+                Configure third-party cricket data credentials, cache TTL, and real-time engine telemetry.
+              </p>
             </div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Configure third-party cricket data credentials, cache TTL, and feature flags.
-            </p>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleTestConnection}
-            disabled={isTesting}
-            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-colors shrink-0 disabled:opacity-50"
-          >
-            <Zap className={`w-3.5 h-3.5 ${isTesting ? 'animate-bounce text-emerald-500' : 'text-emerald-500'}`} />
-            <span>{isTesting ? 'Testing...' : 'Test Connection'}</span>
-          </button>
-        </div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 shrink-0">
+              <div className="flex items-center gap-3 text-xs font-mono text-slate-500 dark:text-slate-400 pr-3 sm:border-r border-slate-200 dark:border-slate-800">
+                <span>
+                  Quota:{' '}
+                  <strong className="text-slate-900 dark:text-slate-100 font-semibold">
+                    {apiSettings.requestsUsedToday.toLocaleString()} / {apiSettings.rateLimitPerDay.toLocaleString()}
+                  </strong>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      apiSettings.lastPingStatus === 'healthy' ? 'bg-emerald-500' : 'bg-rose-500'
+                    }`}
+                  />
+                  <strong
+                    className={`font-semibold ${
+                      apiSettings.lastPingStatus === 'healthy'
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-rose-600 dark:text-rose-400'
+                    }`}
+                  >
+                    {apiSettings.lastPingStatus === 'healthy' ? 'Operational' : 'Check Key'}
+                  </strong>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting}
+                className="inline-flex items-center gap-2 h-10 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold shadow-xs shadow-emerald-600/20 transition-all shrink-0 disabled:opacity-60"
+              >
+                <Zap className={`w-4 h-4 ${isTesting ? 'animate-bounce' : ''}`} />
+                <span>{isTesting ? 'Testing...' : 'Test Connection'}</span>
+              </button>
+            </div>
+          </div>
+        </section>
 
         {/* 2 Clean Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-3">
+          <div className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs space-y-3">
             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span className="font-semibold uppercase tracking-wider text-[11px]">Daily Quota</span>
+              <span className="font-semibold uppercase tracking-wider text-[11px] font-mono">Daily Quota</span>
               <span className="font-mono text-slate-800 dark:text-slate-200 tabular-nums font-semibold">
-                {apiSettings.requestsUsedToday} / {apiSettings.rateLimitPerDay}
+                {apiSettings.requestsUsedToday.toLocaleString()} / {apiSettings.rateLimitPerDay.toLocaleString()}
               </span>
             </div>
-            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-emerald-500 h-1.5 rounded-full"
+                className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${quotaPercent}%` }}
               />
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 font-mono">
               {100 - quotaPercent}% calls remaining today
             </p>
           </div>
 
-          <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-1.5">
-            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">
+          <div className="p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs space-y-1.5">
+            <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider font-mono block">
               Response Cache
             </span>
             <span className="text-2xl font-bold text-slate-900 dark:text-slate-100 font-mono block">
               {apiSettings.cacheTtlMinutes}m TTL
             </span>
             <p className="text-xs text-slate-500">
-              Prevents duplicate outbound calls to protect limits
+              Prevents duplicate outbound calls to protect limits and enhance latency.
             </p>
           </div>
         </div>
 
         {/* Form Settings */}
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          <div className="p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs space-y-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
               Gateway Credentials
-            </h3>
+            </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -133,7 +147,7 @@ export default function CricketApiPage() {
                 <select
                   value={provider}
                   onChange={(e) => setProvider(e.target.value as any)}
-                  className="w-full h-9 px-2.5 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500"
+                  className="w-full h-9 px-2.5 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-medium"
                 >
                   <option value="cricapi">CricAPI</option>
                   <option value="sportmonks">Sportmonks Cricket API</option>
@@ -152,7 +166,7 @@ export default function CricketApiPage() {
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                   placeholder="https://api.cricapi.com/v1"
-                  className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                  className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -167,7 +181,7 @@ export default function CricketApiPage() {
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="Enter API key"
-                    className="w-full h-9 pl-3 pr-10 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
+                    className="w-full h-9 pl-3 pr-10 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
@@ -189,7 +203,7 @@ export default function CricketApiPage() {
                   max={500000}
                   value={rateLimitPerDay}
                   onChange={(e) => setRateLimitPerDay(Number(e.target.value))}
-                  className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
 
@@ -203,7 +217,7 @@ export default function CricketApiPage() {
                   max={60}
                   value={cacheTtl}
                   onChange={(e) => setCacheTtl(Number(e.target.value))}
-                  className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full h-9 px-3 text-xs bg-slate-50/80 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
             </div>
@@ -212,13 +226,13 @@ export default function CricketApiPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="h-9 px-5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-xs transition-colors"
+              className="h-10 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold shadow-xs shadow-emerald-600/20 transition-all"
             >
               Save Changes
             </button>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   );
 }

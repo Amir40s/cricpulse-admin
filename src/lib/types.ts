@@ -1,6 +1,11 @@
 export type PollStatus = 'active' | 'scheduled' | 'ended' | 'draft';
 
-export type PollCategory = 'Match Prediction' | 'Player of the Match' | 'Tournament Winner' | 'Opinion';
+export type PollCategory =
+  | 'Match Prediction'
+  | 'Player of the Match'
+  | 'Tournament Winner'
+  | 'Opinion'
+  | (string & {});
 
 export interface PollOption {
   id: string;

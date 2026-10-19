@@ -189,14 +189,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
-
-          <div className="flex items-center justify-between px-2 pt-2 text-[10px] text-slate-500">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              API Services Operational
-            </span>
-            <span className="font-mono">v1.2.0</span>
-          </div>
         </div>
       </aside>
     </>

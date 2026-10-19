@@ -139,7 +139,7 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder=" "
-                    className="peer w-full bg-transparent border-0 text-slate-100 text-sm p-0 focus:outline-none focus:ring-0 font-mono"
+                    className="peer w-full bg-transparent border-0 text-slate-100 text-sm p-0 focus:outline-none focus:ring-0"
                   />
                   <label
                     htmlFor="email"
@@ -167,7 +167,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder=" "
-                    className="peer w-full bg-transparent border-0 text-slate-100 text-sm p-0 pr-2 focus:outline-none focus:ring-0 font-mono"
+                    className="peer w-full bg-transparent border-0 text-slate-100 text-sm p-0 pr-2 focus:outline-none focus:ring-0"
                   />
                   <label
                     htmlFor="password"
