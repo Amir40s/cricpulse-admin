@@ -18,12 +18,6 @@ export default function CricketApiPage() {
   const [rateLimitPerDay, setRateLimitPerDay] = useState(apiSettings.rateLimitPerDay);
   const [cacheTtl, setCacheTtl] = useState(apiSettings.cacheTtlMinutes);
 
-  // Toggles
-  const [enableLive, setEnableLive] = useState(apiSettings.enableLiveScores);
-  const [enableUpcoming, setEnableUpcoming] = useState(apiSettings.enableUpcomingMatches);
-  const [enableResults, setEnableResults] = useState(apiSettings.enableMatchResults);
-  const [enableBallByBall, setEnableBallByBall] = useState(apiSettings.ballByBallEnabled);
-
   const [showApiKey, setShowApiKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -35,10 +29,6 @@ export default function CricketApiPage() {
       baseUrl: baseUrl.trim(),
       rateLimitPerDay: Number(rateLimitPerDay),
       cacheTtlMinutes: Number(cacheTtl),
-      enableLiveScores: enableLive,
-      enableUpcomingMatches: enableUpcoming,
-      enableMatchResults: enableResults,
-      ballByBallEnabled: enableBallByBall,
     });
   };
 
@@ -216,55 +206,6 @@ export default function CricketApiPage() {
                   className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-mono"
                 />
               </div>
-            </div>
-          </div>
-
-          {/* Feature Toggles */}
-          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Mobile App Feature Switches
-            </h3>
-
-            <div className="space-y-2">
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Live Match Scorecards</span>
-                <input
-                  type="checkbox"
-                  checked={enableLive}
-                  onChange={(e) => setEnableLive(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0b0f17] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Upcoming Match Schedules & Squads</span>
-                <input
-                  type="checkbox"
-                  checked={enableUpcoming}
-                  onChange={(e) => setEnableUpcoming(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0b0f17] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Recent Match Results & Summaries</span>
-                <input
-                  type="checkbox"
-                  checked={enableResults}
-                  onChange={(e) => setEnableResults(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0b0f17] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Ball-by-Ball Commentary Feed</span>
-                <input
-                  type="checkbox"
-                  checked={enableBallByBall}
-                  onChange={(e) => setEnableBallByBall(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#0b0f17] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
             </div>
           </div>
 

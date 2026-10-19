@@ -18,10 +18,6 @@ export default function MonetizationPage() {
 
   const [globalEnabled, setGlobalEnabled] = useState(adMobSettings.adsEnabledGlobally);
   const [testMode, setTestMode] = useState(adMobSettings.testMode);
-  const [bannerHome, setBannerHome] = useState(adMobSettings.bannerOnHomeScreen);
-  const [interNews, setInterNews] = useState(adMobSettings.interstitialOnNewsDetail);
-  const [nativeMatch, setNativeMatch] = useState(adMobSettings.nativeInMatchList);
-  const [frequency, setFrequency] = useState(adMobSettings.interstitialFrequencyClicks);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,10 +29,6 @@ export default function MonetizationPage() {
       rewardedAdUnitId: rewardedId.trim(),
       adsEnabledGlobally: globalEnabled,
       testMode,
-      bannerOnHomeScreen: bannerHome,
-      interstitialOnNewsDetail: interNews,
-      nativeInMatchList: nativeMatch,
-      interstitialFrequencyClicks: Number(frequency),
     });
   };
 
@@ -209,62 +201,6 @@ export default function MonetizationPage() {
                   />
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Placement & Frequency */}
-          <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0c1220] shadow-2xs space-y-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Mobile Placements & Frequency
-            </h3>
-
-            <div className="space-y-2">
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Sticky Banner on Home Feed</span>
-                <input
-                  type="checkbox"
-                  checked={bannerHome}
-                  onChange={(e) => setBannerHome(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Interstitial on Article Detail</span>
-                <input
-                  type="checkbox"
-                  checked={interNews}
-                  onChange={(e) => setInterNews(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-
-              <label className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 cursor-pointer hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                <span className="text-xs font-medium text-slate-800 dark:text-slate-200">Native Sponsor Cards in Match List</span>
-                <input
-                  type="checkbox"
-                  checked={nativeMatch}
-                  onChange={(e) => setNativeMatch(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
-                />
-              </label>
-            </div>
-
-            <div className="p-4 rounded-lg bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800/80 space-y-2.5 pt-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-medium text-slate-700 dark:text-slate-300">Interstitial Frequency Capping</span>
-                <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                  Every {frequency} clicks
-                </span>
-              </div>
-              <input
-                type="range"
-                min={2}
-                max={10}
-                value={frequency}
-                onChange={(e) => setFrequency(Number(e.target.value))}
-                className="w-full accent-emerald-500 cursor-pointer"
-              />
             </div>
           </div>
 

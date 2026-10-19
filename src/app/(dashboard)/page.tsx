@@ -50,28 +50,24 @@ export default function DashboardOverviewPage() {
       category: 'POLL',
       time: '12m ago',
       icon: BarChart3,
-      badgeColor: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20',
     },
     {
       title: 'Match Engine Gateway Latency Verified (142ms)',
       category: 'GATEWAY',
       time: '45m ago',
       icon: Cpu,
-      badgeColor: 'text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-500/10 border-sky-200 dark:border-sky-500/20',
     },
     {
       title: 'AdMob Frequency Cap Synced to Mobile App',
       category: 'ADS',
       time: '2h ago',
       icon: Coins,
-      badgeColor: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/20',
     },
     {
       title: 'Shaheen vs Kohli Fan Poll reached 1,250 votes milestone',
       category: 'ENGAGEMENT',
       time: '3h ago',
       icon: TrendingUp,
-      badgeColor: 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-500/10 border-purple-200 dark:border-purple-500/20',
     },
   ];
 
@@ -310,28 +306,25 @@ export default function DashboardOverviewPage() {
             <span className="text-[11px] text-slate-400 font-mono">Live feed</span>
           </div>
 
-          <div className="space-y-3">
-            {recentActivities.map((act, i) => {
-              const Icon = act.icon;
-              return (
-                <div
-                  key={i}
-                  className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 dark:border-slate-800/40 last:border-0"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border font-mono ${act.badgeColor}`}>
-                      {act.category}
-                    </span>
-                    <span className="text-slate-700 dark:text-slate-300 font-medium">
-                      {act.title}
-                    </span>
-                  </div>
-                  <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px] shrink-0 ml-4">
-                    {act.time}
+          <div className="space-y-1.5">
+            {recentActivities.map((act, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between text-xs py-2 px-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors duration-150 border-b border-slate-100 dark:border-slate-800/40 last:border-0"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700/60 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-mono tracking-wide shrink-0">
+                    {act.category}
+                  </span>
+                  <span className="text-slate-700 dark:text-slate-300 font-medium truncate">
+                    {act.title}
                   </span>
                 </div>
-              );
-            })}
+                <span className="text-slate-400 dark:text-slate-500 font-mono text-[11px] shrink-0 ml-4">
+                  {act.time}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

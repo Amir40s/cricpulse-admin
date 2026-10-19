@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Menu, RefreshCw, ExternalLink, Sun, Moon } from 'lucide-react';
+import { Menu, RefreshCw, Sun, Moon } from 'lucide-react';
 import { useApp } from '@/lib/store';
 
 interface HeaderProps {
@@ -47,18 +47,8 @@ export function Header({ onOpenMobileMenu, title, subtitle, breadcrumbs = ['Dash
         </div>
       </div>
 
-      {/* Right: Operational Status, Theme Toggle & Controls */}
+      {/* Right: Theme Toggle & Controls */}
       <div className="flex items-center gap-2 sm:gap-3">
-        {/* Engine status indicator */}
-        <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-400">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span className="font-mono text-slate-700 dark:text-slate-300 font-medium">
-            {apiSettings.lastPingStatus === 'healthy' ? 'API Online' : 'Check API'}
-          </span>
-        </div>
 
         {/* Theme Toggle (Light / Dark Mode) */}
         <button
@@ -83,17 +73,6 @@ export function Header({ onOpenMobileMenu, title, subtitle, breadcrumbs = ['Dash
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-emerald-500' : ''}`} />
           <span className="hidden sm:inline">Refresh Cache</span>
         </button>
-
-        {/* External Link */}
-        <a
-          href="https://play.google.com/store/apps"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 h-8 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition-colors shadow-sm"
-        >
-          <span>Android App</span>
-          <ExternalLink className="w-3 h-3" />
-        </a>
       </div>
     </header>
   );

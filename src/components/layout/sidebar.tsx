@@ -9,7 +9,6 @@ import {
   BarChart3,
   Cpu,
   Coins,
-  Settings,
   LogOut,
   X,
 } from 'lucide-react';
@@ -59,17 +58,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           name: 'AdMob & Monetization',
           href: '/monetization',
           icon: Coins,
-          badge: null,
-        },
-      ],
-    },
-    {
-      label: 'Configuration',
-      items: [
-        {
-          name: 'App & Store Settings',
-          href: '/settings',
-          icon: Settings,
           badge: null,
         },
       ],

@@ -24,11 +24,31 @@ export interface ToastMessage {
   message: string;
 }
 
+interface StoredAdmin {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: 'Super Admin' | 'Content Editor';
+  createdAt: string;
+}
+
+async function hashPassword(password: string): Promise<string> {
+  if (typeof window === 'undefined' || !window.crypto || !window.crypto.subtle) {
+    return btoa(password + 'cricpulse_salt_2026');
+  }
+  const msgUint8 = new TextEncoder().encode(password + 'cricpulse_salt_2026');
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 interface AppContextType {
   // Auth
   isAuthenticated: boolean;
   currentUser: AdminUser | null;
-  login: (email: string, pass: string) => boolean;
+  login: (email: string, pass: string) => Promise<{ success: boolean; message: string }>;
+  signUp: (name: string, email: string, pass: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
 
   // Polls
@@ -37,6 +57,7 @@ interface AppContextType {
   updatePoll: (id: string, updated: Partial<Poll>) => void;
   deletePoll: (id: string) => void;
   togglePollStatus: (id: string) => void;
+  votePoll: (pollId: string, optionId: string) => void;
 
   // RSS Feeds
   feeds: RSSFeed[];
@@ -72,8 +93,8 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [theme, setThemeState] = useState<'dark' | 'light'>('dark');
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(initialAdminUser);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
   const [polls, setPolls] = useState<Poll[]>(initialPolls);
   const [feeds, setFeeds] = useState<RSSFeed[]>(initialRSSFeeds);
@@ -98,8 +119,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       const savedAuth = localStorage.getItem('cricpulse_auth');
-      if (savedAuth !== null) {
-        setIsAuthenticated(savedAuth === 'true');
+      const savedUser = localStorage.getItem('cricpulse_user');
+      if (savedAuth === 'true' && savedUser) {
+        setIsAuthenticated(true);
+        setCurrentUser(JSON.parse(savedUser));
+      } else {
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      }
+
+      // Initialize default admin account in localStorage if absent
+      const existingAdmins = localStorage.getItem('cricpulse_admins');
+      if (!existingAdmins) {
+        hashPassword('cricpulse#2026').then((hash) => {
+          const defaultAdmin: StoredAdmin = {
+            id: 'admin-seed-01',
+            name: 'Operations Lead',
+            email: 'admin@cricpulse.app',
+            passwordHash: hash,
+            role: 'Super Admin',
+            createdAt: new Date().toISOString(),
+          };
+          localStorage.setItem('cricpulse_admins', JSON.stringify([defaultAdmin]));
+        });
       }
 
       const savedPolls = localStorage.getItem('cricpulse_polls');
@@ -143,6 +185,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!mounted) return;
     try {
       localStorage.setItem('cricpulse_auth', String(isAuthenticated));
+      if (currentUser) {
+        localStorage.setItem('cricpulse_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('cricpulse_user');
+      }
       localStorage.setItem('cricpulse_polls', JSON.stringify(polls));
       localStorage.setItem('cricpulse_feeds', JSON.stringify(feeds));
       localStorage.setItem('cricpulse_api', JSON.stringify(apiSettings));
@@ -151,7 +198,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // Silent catch
     }
-  }, [mounted, isAuthenticated, polls, feeds, apiSettings, adMobSettings, appSettings]);
+  }, [mounted, isAuthenticated, currentUser, polls, feeds, apiSettings, adMobSettings, appSettings]);
 
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -165,24 +212,148 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Auth
-  const login = (email: string, pass: string): boolean => {
-    if (email.trim() && pass.trim()) {
-      setIsAuthenticated(true);
-      setCurrentUser({
-        ...initialAdminUser,
-        email: email.trim(),
-      });
-      addToast('Welcome back. Session authenticated successfully.', 'success');
-      return true;
+  // Secure Auth
+  const login = async (email: string, pass: string): Promise<{ success: boolean; message: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    if (!cleanEmail || !cleanPass) {
+      const msg = 'Please enter both administrator email and password.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
     }
-    addToast('Please enter both email and password.', 'error');
-    return false;
+
+    try {
+      const inputHash = await hashPassword(cleanPass);
+      const rawAdmins = localStorage.getItem('cricpulse_admins');
+      let adminList: StoredAdmin[] = rawAdmins ? JSON.parse(rawAdmins) : [];
+
+      // If no list yet, populate default
+      if (adminList.length === 0) {
+        const seedHash = await hashPassword('cricpulse#2026');
+        const defaultAdmin: StoredAdmin = {
+          id: 'admin-seed-01',
+          name: 'Operations Lead',
+          email: 'admin@cricpulse.app',
+          passwordHash: seedHash,
+          role: 'Super Admin',
+          createdAt: new Date().toISOString(),
+        };
+        adminList = [defaultAdmin];
+        localStorage.setItem('cricpulse_admins', JSON.stringify(adminList));
+      }
+
+      const match = adminList.find(
+        (a) => a.email.toLowerCase() === cleanEmail && a.passwordHash === inputHash
+      );
+
+      if (!match) {
+        const msg = 'Invalid credentials. Please verify your admin email and password.';
+        addToast(msg, 'error');
+        return { success: false, message: msg };
+      }
+
+      const loggedUser: AdminUser = {
+        id: match.id,
+        name: match.name,
+        email: match.email,
+        role: match.role,
+      };
+
+      setIsAuthenticated(true);
+      setCurrentUser(loggedUser);
+      localStorage.setItem('cricpulse_auth', 'true');
+      localStorage.setItem('cricpulse_user', JSON.stringify(loggedUser));
+
+      addToast(`Authenticated successfully. Welcome, ${loggedUser.name}!`, 'success');
+      return { success: true, message: 'Authentication successful.' };
+    } catch {
+      const msg = 'Authentication service encountered an unexpected error.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const signUp = async (
+    name: string,
+    email: string,
+    pass: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = pass.trim();
+
+    if (!cleanName) {
+      const msg = 'Please provide an administrator full name.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      const msg = 'Please enter a valid administrator email address.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+
+    if (cleanPass.length < 6) {
+      const msg = 'Password must be at least 6 characters for security.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+
+    try {
+      const rawAdmins = localStorage.getItem('cricpulse_admins');
+      const adminList: StoredAdmin[] = rawAdmins ? JSON.parse(rawAdmins) : [];
+
+      const alreadyExists = adminList.some((a) => a.email.toLowerCase() === cleanEmail);
+      if (alreadyExists) {
+        const msg = 'An administrator account with this email already exists.';
+        addToast(msg, 'error');
+        return { success: false, message: msg };
+      }
+
+      const passwordHash = await hashPassword(cleanPass);
+      const newAdmin: StoredAdmin = {
+        id: `admin-${Date.now()}`,
+        name: cleanName,
+        email: cleanEmail,
+        passwordHash,
+        role: 'Super Admin',
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedList = [...adminList, newAdmin];
+      localStorage.setItem('cricpulse_admins', JSON.stringify(updatedList));
+
+      const loggedUser: AdminUser = {
+        id: newAdmin.id,
+        name: newAdmin.name,
+        email: newAdmin.email,
+        role: newAdmin.role,
+      };
+
+      setIsAuthenticated(true);
+      setCurrentUser(loggedUser);
+      localStorage.setItem('cricpulse_auth', 'true');
+      localStorage.setItem('cricpulse_user', JSON.stringify(loggedUser));
+
+      addToast(`Admin account registered & verified. Welcome, ${cleanName}!`, 'success');
+      return { success: true, message: 'Account created successfully.' };
+    } catch {
+      const msg = 'Failed to create account. Please try again.';
+      addToast(msg, 'error');
+      return { success: false, message: msg };
+    }
   };
 
   const logout = () => {
     setIsAuthenticated(false);
-    addToast('Admin logged out successfully.', 'info');
+    setCurrentUser(null);
+    try {
+      localStorage.setItem('cricpulse_auth', 'false');
+      localStorage.removeItem('cricpulse_user');
+    } catch {}
+    addToast('Logged out of operations panel.', 'info');
   };
 
   // Poll CRUD
@@ -195,7 +366,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createdAt: new Date().toISOString(),
     };
     setPolls((prev) => [newPoll, ...prev]);
-    addToast('New poll created and scheduled.', 'success');
+    addToast('New poll created and published to mobile app.', 'success');
   };
 
   const updatePoll = (id: string, updated: Partial<Poll>) => {
@@ -226,6 +397,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })
     );
     addToast('Poll status updated.', 'info');
+  };
+
+  const votePoll = (pollId: string, optionId: string) => {
+    setPolls((prev) =>
+      prev.map((p) => {
+        if (p.id !== pollId) return p;
+        const updatedOptions = p.options.map((opt) =>
+          opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
+        );
+        return {
+          ...p,
+          options: updatedOptions,
+          totalVotes: p.totalVotes + 1,
+        };
+      })
+    );
+    addToast('Live vote registered in poll data stream.', 'success');
   };
 
   // Feed CRUD
@@ -308,12 +496,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         currentUser,
         login,
+        signUp,
         logout,
         polls,
         addPoll,
         updatePoll,
         deletePoll,
         togglePollStatus,
+        votePoll,
         feeds,
         addFeed,
         updateFeed,
