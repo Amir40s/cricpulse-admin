@@ -15,10 +15,21 @@ import {
   List,
   Check,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function PollsPage() {
-  const { polls, addPoll, deletePoll, togglePollStatus, votePoll, addToast } = useApp();
+  const {
+    polls,
+    isLoadingPolls,
+    refreshPolls,
+    getPollById,
+    addPoll,
+    deletePoll,
+    togglePollStatus,
+    votePoll,
+    addToast,
+  } = useApp();
 
   // Search & filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,16 +37,14 @@ export default function PollsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-  // Modals
+  // Modals & submission
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAnalyticsPoll, setSelectedAnalyticsPoll] = useState<Poll | null>(null);
   const [deleteTargetPoll, setDeleteTargetPoll] = useState<Poll | null>(null);
 
   // Form State
   const [newQuestion, setNewQuestion] = useState('');
-  const [newCategory, setNewCategory] = useState<PollCategory>('Match Prediction');
-  const [isCustomCategory, setIsCustomCategory] = useState(false);
-  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [newOptions, setNewOptions] = useState<string[]>(['', '']);
   const [newStartDate, setNewStartDate] = useState(
     new Date().toISOString().slice(0, 16)
@@ -43,9 +52,9 @@ export default function PollsPage() {
   const [newEndDate, setNewEndDate] = useState(
     new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16)
   );
-  const [newFeatured, setNewFeatured] = useState(false);
 
-  // Available unique categories (defaults + any dynamically created)
+
+  // Available unique categories
   const availableCategories = useMemo(() => {
     const defaults = ['Match Prediction', 'Player of the Match', 'Tournament Winner', 'Opinion'];
     const fromPolls = polls.map((p) => p.category);
@@ -53,9 +62,10 @@ export default function PollsPage() {
   }, [polls]);
 
   // Status counts
-  const activeCount = polls.filter((p) => p.status === 'active').length;
+  const activeCount = polls.filter((p) => p.status === 'active' && !p.isManuallyDeactivated).length;
   const scheduledCount = polls.filter((p) => p.status === 'scheduled').length;
   const endedCount = polls.filter((p) => p.status === 'ended').length;
+  const deactivatedCount = polls.filter((p) => p.status === 'deactivated' || p.isManuallyDeactivated).length;
   const totalVotesCount = polls.reduce((sum, p) => sum + p.totalVotes, 0);
 
   // Filtered polls
@@ -65,7 +75,13 @@ export default function PollsPage() {
       poll.options.some((o) => o.text.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesStatus =
-      selectedStatus === 'all' || poll.status === selectedStatus;
+      selectedStatus === 'all'
+        ? true
+        : selectedStatus === 'deactivated'
+        ? poll.status === 'deactivated' || poll.isManuallyDeactivated
+        : selectedStatus === 'active'
+        ? poll.status === 'active' && !poll.isManuallyDeactivated
+        : poll.status === selectedStatus;
 
     const matchesCategory =
       selectedCategory === 'all' || poll.category === selectedCategory;
@@ -95,7 +111,7 @@ export default function PollsPage() {
     setNewOptions(updated);
   };
 
-  const handleCreatePoll = (e: React.FormEvent) => {
+  const handleCreatePoll = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const validOptions = newOptions.map((opt) => opt.trim()).filter(Boolean);
@@ -120,13 +136,10 @@ export default function PollsPage() {
     const status: PollStatus =
       start > new Date() ? 'scheduled' : end < new Date() ? 'ended' : 'active';
 
-    const categoryToSave = isCustomCategory
-      ? (customCategoryInput.trim() || 'General')
-      : newCategory;
-
-    addPoll({
+    setIsSubmitting(true);
+    const ok = await addPoll({
       question: newQuestion.trim(),
-      category: categoryToSave,
+      category: 'General',
       options: validOptions.map((text, idx) => ({
         id: `opt-${Date.now()}-${idx}`,
         text,
@@ -136,19 +149,27 @@ export default function PollsPage() {
       endDate: end.toISOString(),
       status,
       allowMultipleVotes: false,
-      featured: newFeatured,
     });
+    setIsSubmitting(false);
 
-    setNewQuestion('');
-    setNewOptions(['', '']);
-    setCustomCategoryInput('');
-    setIsCustomCategory(false);
-    setIsCreateOpen(false);
+    if (ok) {
+      setNewQuestion('');
+      setNewOptions(['', '']);
+      setIsCreateOpen(false);
+    }
   };
 
-  const confirmDelete = () => {
+  const handleOpenAnalytics = async (poll: Poll) => {
+    setSelectedAnalyticsPoll(poll);
+    const fresh = await getPollById(poll.id);
+    if (fresh) {
+      setSelectedAnalyticsPoll(fresh);
+    }
+  };
+
+  const confirmDelete = async () => {
     if (deleteTargetPoll) {
-      deletePoll(deleteTargetPoll.id);
+      await deletePoll(deleteTargetPoll.id);
       setDeleteTargetPoll(null);
     }
   };
@@ -162,15 +183,21 @@ export default function PollsPage() {
       />
 
       <main className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-        {/* Banner Card Style like Image 2 without 'Hey Admin' */}
+        {/* Top Header Card */}
         <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800/70 bg-gradient-to-b from-white to-slate-50/80 dark:from-slate-900/90 dark:to-slate-950/90 p-5 sm:p-7 shadow-xs">
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                Polls Management
-              </h1>
+              <div className="flex items-center gap-2.5">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  Polls Management
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live API
+                </span>
+              </div>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">
-                Manage live, scheduled, and concluded polling feeds across mobile clients.
+                Fan engagement polls, real-time voting, and automated lifecycle management synced with live backend.
               </p>
             </div>
 
@@ -186,6 +213,17 @@ export default function PollsPage() {
 
               <button
                 type="button"
+                onClick={() => refreshPolls()}
+                disabled={isLoadingPolls}
+                className="inline-flex items-center gap-2 h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-[0.98] text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs transition-all disabled:opacity-50"
+                title="Sync with Backend"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-emerald-500 ${isLoadingPolls ? 'animate-spin' : ''}`} />
+                <span>{isLoadingPolls ? 'Syncing...' : 'Sync API'}</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setIsCreateOpen(true)}
                 className="inline-flex items-center gap-2 h-10 px-4 sm:px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-semibold shadow-xs shadow-emerald-600/20 transition-all shrink-0"
               >
@@ -195,6 +233,7 @@ export default function PollsPage() {
             </div>
           </div>
         </section>
+
 
         {/* Filter & View Toolbar */}
         <section className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800/80 bg-white dark:bg-slate-900/60 shadow-2xs">
@@ -217,6 +256,7 @@ export default function PollsPage() {
                 { id: 'active', label: 'Active', count: activeCount },
                 { id: 'scheduled', label: 'Scheduled', count: scheduledCount },
                 { id: 'ended', label: 'Ended', count: endedCount },
+                { id: 'deactivated', label: 'Deactivated', count: deactivatedCount },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -334,18 +374,24 @@ export default function PollsPage() {
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        {poll.status === 'active' && (
+                        {poll.status === 'active' && !poll.isManuallyDeactivated && (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-medium font-mono uppercase">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             Live
                           </span>
                         )}
-                        {poll.status === 'scheduled' && (
+                        {(poll.status === 'deactivated' || poll.isManuallyDeactivated) && (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 text-[10px] font-medium font-mono uppercase">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                            Deactivated
+                          </span>
+                        )}
+                        {poll.status === 'scheduled' && !poll.isManuallyDeactivated && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/60 text-[10px] font-medium font-mono uppercase">
                             Scheduled
                           </span>
                         )}
-                        {poll.status === 'ended' && (
+                        {poll.status === 'ended' && !poll.isManuallyDeactivated && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-medium font-mono uppercase">
                             Ended
                           </span>
@@ -428,7 +474,7 @@ export default function PollsPage() {
                     <div className="flex items-center gap-2 self-end sm:self-auto">
                       <button
                         type="button"
-                        onClick={() => setSelectedAnalyticsPoll(poll)}
+                        onClick={() => handleOpenAnalytics(poll)}
                         className="h-7.5 px-3 rounded-lg bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-950 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-[0.98]"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -440,7 +486,7 @@ export default function PollsPage() {
                         onClick={() => togglePollStatus(poll.id)}
                         className="h-7.5 px-3 rounded-lg border border-slate-300/80 dark:border-slate-700/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-all active:scale-[0.98]"
                       >
-                        {poll.status === 'active' ? 'Close' : 'Activate'}
+                        {poll.status === 'active' && !poll.isManuallyDeactivated ? 'Deactivate' : 'Activate'}
                       </button>
 
                       <button
@@ -504,18 +550,24 @@ export default function PollsPage() {
                         </td>
 
                         <td className="px-4 py-3.5">
-                          {poll.status === 'active' && (
+                          {poll.status === 'active' && !poll.isManuallyDeactivated && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-medium font-mono uppercase">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                               Live
                             </span>
                           )}
-                          {poll.status === 'scheduled' && (
+                          {(poll.status === 'deactivated' || poll.isManuallyDeactivated) && (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20 text-[10px] font-medium font-mono uppercase">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              Deactivated
+                            </span>
+                          )}
+                          {poll.status === 'scheduled' && !poll.isManuallyDeactivated && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-medium font-mono uppercase">
                               Scheduled
                             </span>
                           )}
-                          {poll.status === 'ended' && (
+                          {poll.status === 'ended' && !poll.isManuallyDeactivated && (
                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[10px] font-medium font-mono uppercase">
                               Ended
                             </span>
@@ -541,7 +593,7 @@ export default function PollsPage() {
                           <div className="flex items-center justify-end gap-1.5">
                             <button
                               type="button"
-                              onClick={() => setSelectedAnalyticsPoll(poll)}
+                              onClick={() => handleOpenAnalytics(poll)}
                               className="h-7 px-2.5 rounded-md bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-950 text-xs font-semibold transition-all active:scale-[0.98]"
                             >
                               Insights
@@ -551,7 +603,7 @@ export default function PollsPage() {
                               onClick={() => togglePollStatus(poll.id)}
                               className="h-7 px-2 rounded-md border border-slate-300/80 dark:border-slate-700/70 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-all"
                             >
-                              {poll.status === 'active' ? 'Close' : 'Activate'}
+                              {poll.status === 'active' && !poll.isManuallyDeactivated ? 'Deactivate' : 'Activate'}
                             </button>
                             <button
                               type="button"
@@ -596,70 +648,7 @@ export default function PollsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
-                  Category
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsCustomCategory(!isCustomCategory)}
-                  className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-medium"
-                >
-                  {isCustomCategory ? 'Choose from list' : '+ Custom Category'}
-                </button>
-              </div>
 
-              {isCustomCategory ? (
-                <input
-                  type="text"
-                  required
-                  autoFocus
-                  value={customCategoryInput}
-                  onChange={(e) => setCustomCategoryInput(e.target.value)}
-                  placeholder="e.g. PSL 2026, Champions Trophy..."
-                  className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-medium transition-colors"
-                />
-              ) : (
-                <select
-                  value={newCategory}
-                  onChange={(e) => {
-                    if (e.target.value === '__custom__') {
-                      setIsCustomCategory(true);
-                      setCustomCategoryInput('');
-                    } else {
-                      setNewCategory(e.target.value);
-                    }
-                  }}
-                  className="w-full h-9 px-2.5 text-xs bg-slate-50 dark:bg-[#080c14] border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-slate-100 focus:outline-none focus:border-emerald-500 font-medium"
-                >
-                  {availableCategories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                  <option value="__custom__">+ Type Custom Category...</option>
-                </select>
-              )}
-            </div>
-
-            <div className="flex items-center gap-2 pt-6">
-              <input
-                type="checkbox"
-                id="featuredCheck"
-                checked={newFeatured}
-                onChange={(e) => setNewFeatured(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 bg-white dark:bg-[#080c14] text-emerald-600 focus:ring-emerald-500"
-              />
-              <label
-                htmlFor="featuredCheck"
-                className="text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer"
-              >
-                Highlight in Match Feeds
-              </label>
-            </div>
-          </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
@@ -741,9 +730,11 @@ export default function PollsPage() {
             </button>
             <button
               type="submit"
-              className="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-xs transition-colors"
+              disabled={isSubmitting}
+              className="h-8 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium shadow-xs transition-colors disabled:opacity-50 flex items-center gap-1.5"
             >
-              Publish Poll
+              {isSubmitting && <RefreshCw className="w-3 h-3 animate-spin" />}
+              <span>{isSubmitting ? 'Publishing...' : 'Publish Poll'}</span>
             </button>
           </div>
         </form>

@@ -1,4 +1,4 @@
-export type PollStatus = 'active' | 'scheduled' | 'ended' | 'draft';
+export type PollStatus = 'active' | 'scheduled' | 'ended' | 'draft' | 'deactivated';
 
 export type PollCategory =
   | 'Match Prediction'
@@ -11,6 +11,7 @@ export interface PollOption {
   id: string;
   text: string;
   votes: number;
+  percentage?: number;
 }
 
 export interface Poll {
@@ -18,13 +19,19 @@ export interface Poll {
   question: string;
   category: PollCategory;
   options: PollOption[];
+  choices?: PollOption[];
   totalVotes: number;
   startDate: string; // ISO String
   endDate: string;   // ISO String
+  expirationDate?: string; // ISO String (backend standard)
+  isManuallyDeactivated?: boolean;
+  isActive?: boolean;
   status: PollStatus;
-  allowMultipleVotes: boolean;
-  featured: boolean;
+  allowMultipleVotes?: boolean;
+  featured?: boolean;
+  highlightInMatchFeeds?: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface RSSFeed {
@@ -37,6 +44,14 @@ export interface RSSFeed {
   lastSyncedAt: string;
   articleCount: number;
   autoPublish: boolean;
+}
+
+export interface RapidAPIKeyStatus {
+  totalKeys: number;
+  activeKeys: number;
+  exhaustedKeys: number;
+  currentKeyIndex: number;
+  currentKeyMasked: string;
 }
 
 export interface CricketAPISettings {

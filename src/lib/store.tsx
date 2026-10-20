@@ -8,6 +8,10 @@ import {
   AdMobSettings,
   AppGeneralSettings,
   AdminUser,
+  PollStatus,
+  PollOption,
+  PollCategory,
+  RapidAPIKeyStatus,
 } from './types';
 import {
   initialPolls,
@@ -53,10 +57,13 @@ interface AppContextType {
 
   // Polls
   polls: Poll[];
-  addPoll: (poll: Omit<Poll, 'id' | 'createdAt' | 'totalVotes'>) => void;
-  updatePoll: (id: string, updated: Partial<Poll>) => void;
-  deletePoll: (id: string) => void;
-  togglePollStatus: (id: string) => void;
+  isLoadingPolls: boolean;
+  refreshPolls: () => Promise<void>;
+  getPollById: (id: string) => Promise<Poll | null>;
+  addPoll: (poll: Omit<Poll, 'id' | 'createdAt' | 'totalVotes'>) => Promise<boolean>;
+  updatePoll: (id: string, updated: Partial<Poll>) => Promise<boolean>;
+  deletePoll: (id: string) => Promise<boolean>;
+  togglePollStatus: (id: string) => Promise<boolean>;
   votePoll: (pollId: string, optionId: string) => void;
 
   // RSS Feeds
@@ -70,6 +77,14 @@ interface AppContextType {
   apiSettings: CricketAPISettings;
   updateApiSettings: (updated: Partial<CricketAPISettings>) => void;
   testApiConnection: () => Promise<boolean>;
+
+  // RapidAPI Multi-Key Management & Rotation
+  rapidApiKeysStatus: RapidAPIKeyStatus | null;
+  isLoadingKeys: boolean;
+  fetchRapidApiKeys: () => Promise<RapidAPIKeyStatus | null>;
+  addRapidApiKey: (key: string) => Promise<boolean>;
+  updateRapidApiKeysList: (keys: string[]) => Promise<boolean>;
+  resetRapidApiKeys: () => Promise<boolean>;
 
   // AdMob & App Settings
   adMobSettings: AdMobSettings;
@@ -103,8 +118,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
   const [polls, setPolls] = useState<Poll[]>(initialPolls);
+  const [isLoadingPolls, setIsLoadingPolls] = useState<boolean>(false);
   const [feeds, setFeeds] = useState<RSSFeed[]>(initialRSSFeeds);
   const [apiSettings, setApiSettings] = useState<CricketAPISettings>(initialCricketAPISettings);
+  const [rapidApiKeysStatus, setRapidApiKeysStatus] = useState<RapidAPIKeyStatus | null>(null);
+  const [isLoadingKeys, setIsLoadingKeys] = useState<boolean>(false);
   const [adMobSettings, setAdMobSettings] = useState<AdMobSettings>(initialAdMobSettings);
   const [appSettings, setAppSettings] = useState<AppGeneralSettings>(initialAppSettings);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -113,6 +131,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const openMobileSidebar = () => setIsMobileSidebarOpen(true);
   const closeMobileSidebar = () => setIsMobileSidebarOpen(false);
   const toggleMobileSidebar = () => setIsMobileSidebarOpen((prev) => !prev);
+
+  const refreshPolls = async () => {
+    setIsLoadingPolls(true);
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/polls', { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
+        if (list.length > 0) {
+          const rawChoices = (c: unknown, total: number, idx: number) => {
+            if (typeof c === 'string') return { id: String(idx + 1), text: c, votes: 0, percentage: 0 };
+            const obj = c as { id?: string; text?: string; votes?: number; percentage?: number };
+            const votes = obj.votes || 0;
+            const percentage =
+              obj.percentage !== undefined
+                ? obj.percentage
+                : total > 0
+                ? Math.round((votes / total) * 100)
+                : 0;
+            return {
+              id: obj.id || String(idx + 1),
+              text: obj.text || '',
+              votes,
+              percentage,
+            };
+          };
+
+          const normalized: Poll[] = list.map((item: Record<string, unknown>) => {
+            const rawChoicesList = (item.choices || item.options || []) as unknown[];
+            const totalVotes =
+              typeof item.totalVotes === 'number'
+                ? item.totalVotes
+                : rawChoicesList.reduce((acc: number, c: unknown) => {
+                    return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
+                  }, 0);
+
+            const options = rawChoicesList.map((c, idx) => rawChoices(c, totalVotes, idx));
+            const endDate = String(item.expirationDate || item.endDate || new Date(Date.now() + 7 * 86400000).toISOString());
+            const startDate = String(item.startDate || item.createdAt || new Date().toISOString());
+
+            let status: PollStatus = (item.status as PollStatus) || 'active';
+            if (item.isManuallyDeactivated) {
+              status = 'deactivated';
+            } else if (new Date(endDate) < new Date()) {
+              status = 'ended';
+            } else if (new Date(startDate) > new Date()) {
+              status = 'scheduled';
+            }
+
+            return {
+              id: String(item.id),
+              question: String(item.question || ''),
+              category: (item.category as PollCategory) || 'Match Prediction',
+              options,
+              choices: options,
+              totalVotes,
+              startDate,
+              endDate,
+              expirationDate: endDate,
+              status,
+              isManuallyDeactivated: Boolean(item.isManuallyDeactivated),
+              isActive: Boolean(item.isActive && !item.isManuallyDeactivated),
+              featured: Boolean(item.highlightInMatchFeeds || item.featured),
+              highlightInMatchFeeds: Boolean(item.highlightInMatchFeeds || item.featured),
+              allowMultipleVotes: false,
+              createdAt: String(item.createdAt || new Date().toISOString()),
+              updatedAt: item.updatedAt ? String(item.updatedAt) : undefined,
+            };
+          });
+
+          setPolls(normalized);
+          try {
+            localStorage.setItem('cricpulse_polls', JSON.stringify(normalized));
+          } catch {}
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Backend fetch failed, falling back to proxy', e);
+      try {
+        const res = await fetch('/api/polls', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+            setPolls(json.data);
+          }
+        }
+      } catch {}
+    } finally {
+      setIsLoadingPolls(false);
+    }
+  };
 
   // Load from localStorage on client mount
   useEffect(() => {
@@ -157,6 +267,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const savedPolls = localStorage.getItem('cricpulse_polls');
       if (savedPolls) setPolls(JSON.parse(savedPolls));
+      refreshPolls();
+      fetchRapidApiKeys();
 
       const savedFeeds = localStorage.getItem('cricpulse_feeds');
       if (savedFeeds) setFeeds(JSON.parse(savedFeeds));
@@ -368,19 +480,126 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Poll CRUD
-  const addPoll = (newPollData: Omit<Poll, 'id' | 'createdAt' | 'totalVotes'>) => {
-    const totalVotes = newPollData.options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
-    const newPoll: Poll = {
-      ...newPollData,
-      id: `poll-${Date.now()}`,
-      totalVotes,
-      createdAt: new Date().toISOString(),
-    };
-    setPolls((prev) => [newPoll, ...prev]);
-    addToast('New poll created and published to mobile app.', 'success');
+  const getPollById = async (id: string): Promise<Poll | null> => {
+    try {
+      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, { cache: 'no-store' });
+      if (res.ok) {
+        const json = await res.json();
+        const raw = json.data || json;
+        if (raw && raw.id) {
+          const rawChoicesList = (raw.choices || raw.options || []) as unknown[];
+          const totalVotes =
+            typeof raw.totalVotes === 'number'
+              ? raw.totalVotes
+              : rawChoicesList.reduce((acc: number, c: unknown) => {
+                  return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
+                }, 0);
+
+          const options: PollOption[] = rawChoicesList.map((c: unknown, idx: number) => {
+            if (typeof c === 'string') return { id: String(idx + 1), text: c, votes: 0, percentage: 0 };
+            const obj = c as { id?: string; text?: string; votes?: number; percentage?: number };
+            const votes = obj.votes || 0;
+            const percentage =
+              obj.percentage !== undefined
+                ? obj.percentage
+                : totalVotes > 0
+                ? Math.round((votes / totalVotes) * 100)
+                : 0;
+            return {
+              id: obj.id || String(idx + 1),
+              text: obj.text || '',
+              votes,
+              percentage,
+            };
+          });
+
+          const endDate = String(raw.expirationDate || raw.endDate || new Date(Date.now() + 7 * 86400000).toISOString());
+          const startDate = String(raw.startDate || raw.createdAt || new Date().toISOString());
+
+          let status: PollStatus = (raw.status as PollStatus) || 'active';
+          if (raw.isManuallyDeactivated) {
+            status = 'deactivated';
+          } else if (new Date(endDate) < new Date()) {
+            status = 'ended';
+          } else if (new Date(startDate) > new Date()) {
+            status = 'scheduled';
+          }
+
+          const normalized: Poll = {
+            id: String(raw.id),
+            question: String(raw.question || ''),
+            category: (raw.category as PollCategory) || 'Match Prediction',
+            options,
+            choices: options,
+            totalVotes,
+            startDate,
+            endDate,
+            expirationDate: endDate,
+            status,
+            isManuallyDeactivated: Boolean(raw.isManuallyDeactivated),
+            isActive: Boolean(raw.isActive && !raw.isManuallyDeactivated),
+            featured: Boolean(raw.highlightInMatchFeeds || raw.featured),
+            highlightInMatchFeeds: Boolean(raw.highlightInMatchFeeds || raw.featured),
+            allowMultipleVotes: false,
+            createdAt: String(raw.createdAt || new Date().toISOString()),
+            updatedAt: raw.updatedAt ? String(raw.updatedAt) : undefined,
+          };
+
+          setPolls((prev) => prev.map((p) => (p.id === id ? normalized : p)));
+          return normalized;
+        }
+      }
+    } catch (e) {
+      console.warn('API error fetching poll by ID', e);
+    }
+    return polls.find((p) => p.id === id) || null;
   };
 
-  const updatePoll = (id: string, updated: Partial<Poll>) => {
+  const addPoll = async (newPollData: Omit<Poll, 'id' | 'createdAt' | 'totalVotes'>): Promise<boolean> => {
+    const choiceStrings = newPollData.options.map((opt) => opt.text.trim()).filter(Boolean);
+
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/polls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: newPollData.question.trim(),
+          choices: choiceStrings,
+          category: newPollData.category,
+          startDate: newPollData.startDate,
+          expirationDate: newPollData.endDate,
+          endDate: newPollData.endDate,
+          highlightInMatchFeeds: newPollData.featured,
+        }),
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.success && json.data) {
+        addToast('New poll created successfully on backend!', 'success');
+        await refreshPolls();
+        return true;
+      } else {
+        const errMsg = json.error?.message || json.message || 'Failed to create poll on backend.';
+        addToast(errMsg, 'error');
+        return false;
+      }
+    } catch (e) {
+      console.warn('Network issue creating poll, saved locally', e);
+      const totalVotes = newPollData.options.reduce((sum, opt) => sum + (opt.votes || 0), 0);
+      const newPoll: Poll = {
+        ...newPollData,
+        id: `poll-${Date.now()}`,
+        totalVotes,
+        createdAt: new Date().toISOString(),
+      };
+      setPolls((prev) => [newPoll, ...prev]);
+      addToast('Saved to local storage (API connection offline).', 'info');
+      return true;
+    }
+  };
+
+  const updatePoll = async (id: string, updated: Partial<Poll>): Promise<boolean> => {
     setPolls((prev) =>
       prev.map((poll) => {
         if (poll.id !== id) return poll;
@@ -391,23 +610,89 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return merged;
       })
     );
+
+    try {
+      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast('Poll updated successfully on backend.', 'success');
+        await refreshPolls();
+        return true;
+      }
+    } catch (e) {
+      console.warn('API error updating poll', e);
+    }
     addToast('Poll details updated.', 'success');
+    return true;
   };
 
-  const deletePoll = (id: string) => {
+  const deletePoll = async (id: string): Promise<boolean> => {
+    // Optimistic removal
     setPolls((prev) => prev.filter((p) => p.id !== id));
-    addToast('Poll deleted from database.', 'info');
+
+    try {
+      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast(json.message || 'Poll deleted successfully from backend.', 'info');
+        await refreshPolls();
+        return true;
+      }
+    } catch (e) {
+      console.warn('API error deleting poll', e);
+    }
+    addToast('Poll removed from dashboard.', 'info');
+    return true;
   };
 
-  const togglePollStatus = (id: string) => {
+  const togglePollStatus = async (id: string): Promise<boolean> => {
+    const current = polls.find((p) => p.id === id);
+    if (!current) return false;
+
+    const willDeactivate = current.status === 'active' && !current.isManuallyDeactivated;
+    const nextStatus: PollStatus = willDeactivate ? 'deactivated' : 'active';
+
     setPolls((prev) =>
       prev.map((p) => {
         if (p.id !== id) return p;
-        const nextStatus = p.status === 'active' ? 'ended' : 'active';
-        return { ...p, status: nextStatus };
+        return {
+          ...p,
+          status: nextStatus,
+          isManuallyDeactivated: willDeactivate,
+          isActive: !willDeactivate,
+        };
       })
     );
+
+    try {
+      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          isManuallyDeactivated: willDeactivate,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast(
+          `Poll ${willDeactivate ? 'deactivated' : 'activated'} successfully!`,
+          'info'
+        );
+        await refreshPolls();
+        return true;
+      }
+    } catch (e) {
+      console.warn('API error updating poll status', e);
+    }
     addToast('Poll status updated.', 'info');
+    return true;
   };
 
   const votePoll = (pollId: string, optionId: string) => {
@@ -467,27 +752,168 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     addToast('Feed sync completed. New articles queued.', 'success');
   };
 
-  // Cricket API
+  // Cricket API & RapidAPI Multi-Key Management
+  const fetchRapidApiKeys = async (): Promise<RapidAPIKeyStatus | null> => {
+    setIsLoadingKeys(true);
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+        cache: 'no-store',
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setRapidApiKeysStatus(json.data);
+          return json.data;
+        }
+      }
+    } catch (e) {
+      console.warn('Direct fetch failed, falling back to local proxy', e);
+      try {
+        const res = await fetch('/api/settings/keys', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            setRapidApiKeysStatus(json.data);
+            return json.data;
+          }
+        }
+      } catch {}
+    } finally {
+      setIsLoadingKeys(false);
+    }
+    return null;
+  };
+
+  const addRapidApiKey = async (key: string): Promise<boolean> => {
+    if (!key.trim()) {
+      addToast('Please enter a valid RapidAPI key.', 'error');
+      return false;
+    }
+    setIsLoadingKeys(true);
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ addKey: key.trim() }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast(json.message || 'RapidAPI key added successfully!', 'success');
+        if (json.data) {
+          setRapidApiKeysStatus(json.data);
+        } else {
+          await fetchRapidApiKeys();
+        }
+        return true;
+      } else {
+        const msg = json.error?.message || json.message || 'Failed to add RapidAPI key.';
+        addToast(msg, 'error');
+      }
+    } catch (e) {
+      console.error('Error adding key', e);
+      addToast('Network error connecting to backend.', 'error');
+    } finally {
+      setIsLoadingKeys(false);
+    }
+    return false;
+  };
+
+  const updateRapidApiKeysList = async (keys: string[]): Promise<boolean> => {
+    const clean = keys.map((k) => k.trim()).filter(Boolean);
+    if (clean.length === 0) {
+      addToast('Please provide at least one RapidAPI key.', 'error');
+      return false;
+    }
+    setIsLoadingKeys(true);
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: clean }),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast(json.message || 'RapidAPI keys pool updated successfully!', 'success');
+        if (json.data) {
+          setRapidApiKeysStatus(json.data);
+        } else {
+          await fetchRapidApiKeys();
+        }
+        return true;
+      } else {
+        const msg = json.error?.message || json.message || 'Failed to update keys pool.';
+        addToast(msg, 'error');
+      }
+    } catch (e) {
+      console.error('Error updating keys list', e);
+      addToast('Network error updating keys pool.', 'error');
+    } finally {
+      setIsLoadingKeys(false);
+    }
+    return false;
+  };
+
+  const resetRapidApiKeys = async (): Promise<boolean> => {
+    setIsLoadingKeys(true);
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const json = await res.json();
+      if (res.ok && json.success) {
+        addToast(json.message || 'All exhausted keys reset to active status!', 'success');
+        if (json.data) {
+          setRapidApiKeysStatus(json.data);
+        } else {
+          await fetchRapidApiKeys();
+        }
+        return true;
+      } else {
+        const msg = json.error?.message || json.message || 'Failed to reset keys.';
+        addToast(msg, 'error');
+      }
+    } catch (e) {
+      console.error('Error resetting keys', e);
+      addToast('Network error resetting RapidAPI keys.', 'error');
+    } finally {
+      setIsLoadingKeys(false);
+    }
+    return false;
+  };
+
   const updateApiSettings = (updated: Partial<CricketAPISettings>) => {
     setApiSettings((prev) => ({ ...prev, ...updated }));
     addToast('Cricket API credentials and limits saved.', 'success');
   };
 
   const testApiConnection = async (): Promise<boolean> => {
-    await new Promise((r) => setTimeout(r, 1100));
-    const isHealthy = Boolean(apiSettings.apiKey && apiSettings.apiKey.length > 8);
+    const start = Date.now();
+    try {
+      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+        cache: 'no-store',
+      });
+      const latency = Date.now() - start;
+      if (res.ok) {
+        setApiSettings((prev) => ({
+          ...prev,
+          lastPingStatus: 'healthy',
+          lastPingTime: new Date().toISOString(),
+          requestsUsedToday: prev.requestsUsedToday + 1,
+        }));
+        addToast(`API Ping Successful (HTTP 200 OK - Latency ${latency}ms)`, 'success');
+        return true;
+      }
+    } catch {}
+
     setApiSettings((prev) => ({
       ...prev,
-      lastPingStatus: isHealthy ? 'healthy' : 'error',
+      lastPingStatus: 'error',
       lastPingTime: new Date().toISOString(),
-      requestsUsedToday: prev.requestsUsedToday + 1,
     }));
-    if (isHealthy) {
-      addToast('API Ping Successful (HTTP 200 OK - Latency 142ms)', 'success');
-    } else {
-      addToast('API Ping Failed: Invalid API key or endpoint unreachable', 'error');
-    }
-    return isHealthy;
+    addToast('API Ping Failed: Backend endpoint unreachable', 'error');
+    return false;
   };
 
   // AdMob & App
@@ -510,6 +936,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         signUp,
         logout,
         polls,
+        isLoadingPolls,
+        refreshPolls,
+        getPollById,
         addPoll,
         updatePoll,
         deletePoll,
@@ -523,6 +952,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         apiSettings,
         updateApiSettings,
         testApiConnection,
+        rapidApiKeysStatus,
+        isLoadingKeys,
+        fetchRapidApiKeys,
+        addRapidApiKey,
+        updateRapidApiKeysList,
+        resetRapidApiKeys,
         adMobSettings,
         updateAdMobSettings,
         appSettings,
