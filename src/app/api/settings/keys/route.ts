@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_API_URL =
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://cric-plus-iota.vercel.app';
+  'https://cric-pulse-nodejs.vercel.app';
 
 // GET /api/settings/keys - Get RapidAPI keys status and quota usage
 export async function GET() {

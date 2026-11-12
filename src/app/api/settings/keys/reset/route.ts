@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 const BACKEND_API_URL =
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://cric-plus-iota.vercel.app';
+  'https://cric-pulse-nodejs.vercel.app';
 
 // POST /api/settings/keys/reset - Reset exhausted keys back to active status
 export async function POST() {

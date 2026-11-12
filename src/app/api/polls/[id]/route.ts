@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const BACKEND_API_URL =
   process.env.BACKEND_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  'https://cric-plus-iota.vercel.app';
+  'https://cric-pulse-nodejs.vercel.app';
 
 interface BackendChoice {
   id: string;
@@ -45,8 +45,8 @@ function normalizePoll(raw: RawPollData) {
       c.percentage !== undefined
         ? c.percentage
         : totalVotes > 0
-        ? Math.round((votes / totalVotes) * 100)
-        : 0;
+          ? Math.round((votes / totalVotes) * 100)
+          : 0;
     return {
       id: c.id || String(idx + 1),
       text: c.text || '',

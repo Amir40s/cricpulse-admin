@@ -135,7 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const refreshPolls = async () => {
     setIsLoadingPolls(true);
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/polls', { cache: 'no-store' });
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/polls', { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         const list = Array.isArray(json.data) ? json.data : Array.isArray(json) ? json : [];
@@ -148,8 +148,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               obj.percentage !== undefined
                 ? obj.percentage
                 : total > 0
-                ? Math.round((votes / total) * 100)
-                : 0;
+                  ? Math.round((votes / total) * 100)
+                  : 0;
             return {
               id: obj.id || String(idx + 1),
               text: obj.text || '',
@@ -164,8 +164,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               typeof item.totalVotes === 'number'
                 ? item.totalVotes
                 : rawChoicesList.reduce((acc: number, c: unknown) => {
-                    return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
-                  }, 0);
+                  return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
+                }, 0);
 
             const options = rawChoicesList.map((c, idx) => rawChoices(c, totalVotes, idx));
             const endDate = String(item.expirationDate || item.endDate || new Date(Date.now() + 7 * 86400000).toISOString());
@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setPolls(normalized);
           try {
             localStorage.setItem('cricpulse_polls', JSON.stringify(normalized));
-          } catch {}
+          } catch { }
           return;
         }
       }
@@ -218,7 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             setPolls(json.data);
           }
         }
-      } catch {}
+      } catch { }
     } finally {
       setIsLoadingPolls(false);
     }
@@ -296,7 +296,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } else {
         document.documentElement.classList.remove('dark');
       }
-    } catch {}
+    } catch { }
   };
 
   const toggleTheme = () => {
@@ -475,14 +475,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('cricpulse_auth', 'false');
       localStorage.removeItem('cricpulse_user');
-    } catch {}
+    } catch { }
     addToast('Logged out of operations panel.', 'info');
   };
 
   // Poll CRUD
   const getPollById = async (id: string): Promise<Poll | null> => {
     try {
-      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, { cache: 'no-store' });
+      const res = await fetch(`https://cric-pulse-nodejs.vercel.app/api/polls/${id}`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
         const raw = json.data || json;
@@ -492,8 +492,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             typeof raw.totalVotes === 'number'
               ? raw.totalVotes
               : rawChoicesList.reduce((acc: number, c: unknown) => {
-                  return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
-                }, 0);
+                return acc + (c && typeof c === 'object' && 'votes' in c ? Number((c as { votes: number }).votes || 0) : 0);
+              }, 0);
 
           const options: PollOption[] = rawChoicesList.map((c: unknown, idx: number) => {
             if (typeof c === 'string') return { id: String(idx + 1), text: c, votes: 0, percentage: 0 };
@@ -503,8 +503,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               obj.percentage !== undefined
                 ? obj.percentage
                 : totalVotes > 0
-                ? Math.round((votes / totalVotes) * 100)
-                : 0;
+                  ? Math.round((votes / totalVotes) * 100)
+                  : 0;
             return {
               id: obj.id || String(idx + 1),
               text: obj.text || '',
@@ -559,7 +559,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const choiceStrings = newPollData.options.map((opt) => opt.text.trim()).filter(Boolean);
 
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/polls', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/polls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -612,7 +612,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+      const res = await fetch(`https://cric-pulse-nodejs.vercel.app/api/polls/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated),
@@ -635,7 +635,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPolls((prev) => prev.filter((p) => p.id !== id));
 
     try {
-      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+      const res = await fetch(`https://cric-pulse-nodejs.vercel.app/api/polls/${id}`, {
         method: 'DELETE',
         headers: { 'Accept': 'application/json' },
       });
@@ -672,7 +672,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
 
     try {
-      const res = await fetch(`https://cric-plus-iota.vercel.app/api/polls/${id}`, {
+      const res = await fetch(`https://cric-pulse-nodejs.vercel.app/api/polls/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -756,7 +756,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const fetchRapidApiKeys = async (): Promise<RapidAPIKeyStatus | null> => {
     setIsLoadingKeys(true);
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/settings/keys', {
         cache: 'no-store',
       });
       if (res.ok) {
@@ -777,7 +777,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return json.data;
           }
         }
-      } catch {}
+      } catch { }
     } finally {
       setIsLoadingKeys(false);
     }
@@ -791,7 +791,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setIsLoadingKeys(true);
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/settings/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ addKey: key.trim() }),
@@ -826,7 +826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     setIsLoadingKeys(true);
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/settings/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keys: clean }),
@@ -856,7 +856,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const resetRapidApiKeys = async (): Promise<boolean> => {
     setIsLoadingKeys(true);
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys/reset', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/settings/keys/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -891,7 +891,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const testApiConnection = async (): Promise<boolean> => {
     const start = Date.now();
     try {
-      const res = await fetch('https://cric-plus-iota.vercel.app/api/settings/keys', {
+      const res = await fetch('https://cric-pulse-nodejs.vercel.app/api/settings/keys', {
         cache: 'no-store',
       });
       const latency = Date.now() - start;
@@ -905,7 +905,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         addToast(`API Ping Successful (HTTP 200 OK - Latency ${latency}ms)`, 'success');
         return true;
       }
-    } catch {}
+    } catch { }
 
     setApiSettings((prev) => ({
       ...prev,
